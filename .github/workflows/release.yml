@@ -1,0 +1,103 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Generar carpeta de plataforma Android
+        run: flutter create --platforms=android .
+
+      - name: Obtener dependencias
+        run: flutter pub get
+
+      - name: Compilar APK (release)
+        run: flutter build apk --release
+
+      - name: Subir APK como artefacto temporal
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Generar carpeta de plataforma Windows
+        run: flutter create --platforms=windows .
+
+      - name: Obtener dependencias
+        run: flutter pub get
+
+      - name: Compilar ejecutable (release)
+        run: flutter build windows --release
+
+      - name: Comprimir build de Windows
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath wavelen-windows.zip
+
+      - name: Subir Windows como artefacto temporal
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: wavelen-windows.zip
+
+  release:
+    name: Publicar release
+    needs: [ build-android, build-windows ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Descargar APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: dist
+
+      - name: Descargar Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: dist
+
+      - name: Publicar o actualizar release "latest-build"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: "Ultimo build (Android + Windows)"
+          prerelease: true
+          body: >
+            Build automatico generado por GitHub Actions a partir del
+            commit ${{ github.sha }}. Incluye el APK de Android y el
+            ejecutable de Windows mas recientes.
+          files: |
+            dist/app-release.apk
+            dist/wavelen-windows.zip
