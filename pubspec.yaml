@@ -1,0 +1,22 @@
+name: wavelen
+description: "Wavelen: cliente de musica multiplataforma de codigo abierto."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  youtube_explode_dart: ^2.2.0
+  just_audio: ^0.10.0
+  just_audio_windows: ^0.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
